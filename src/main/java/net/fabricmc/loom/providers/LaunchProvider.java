@@ -30,8 +30,11 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+<<<<<<< HEAD
 import java.util.Collections;
 import java.util.Arrays;
+=======
+>>>>>>> chocohead/jekan't
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +45,8 @@ import java.util.function.Consumer;
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.Project;
 
+import com.google.common.collect.ImmutableSet;
+
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.dependencies.DependencyProvider;
 import net.fabricmc.loom.dependencies.LogicalDependencyProvider;
@@ -51,7 +56,7 @@ import net.fabricmc.loom.util.GradleSupport;
 public class LaunchProvider extends LogicalDependencyProvider {
 	@Override
 	public Set<Class<? extends DependencyProvider>> getDependencies() {
-		return Collections.singleton(MinecraftProvider.class);
+		return ImmutableSet.of(MinecraftProvider.class, MinecraftLibraryProvider.class);
 	}
 
 	@Override
@@ -74,7 +79,7 @@ public class LaunchProvider extends LogicalDependencyProvider {
 
 		writeLog4jConfig(extension);
 
-		if (GradleSupport.extractNatives(project)) {
+		if (extension.hasLWJGL2() || GradleSupport.extractNatives(project)) {
 			launchConfig.property("client", "java.library.path", extension.getNativesDirectory().getAbsolutePath())
 						.property("client", "org.lwjgl.librarypath", extension.getNativesDirectory().getAbsolutePath());
 		}

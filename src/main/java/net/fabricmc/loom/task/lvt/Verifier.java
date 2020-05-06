@@ -33,8 +33,6 @@ import org.objectweb.asm.tree.analysis.SimpleVerifier;
 
 import com.google.common.collect.ImmutableSet;
 
-import net.fabricmc.loom.task.lvt.ClassInfo.TypeLookup;
-
 class Verifier extends SimpleVerifier {
     final Type currentClass;
     private final Type currentSuperClass;
@@ -69,7 +67,7 @@ class Verifier extends SimpleVerifier {
 					if (isAssignableFrom(expectedType, type)) {
 						return true;
 					} else {
-						ClassInfo expectedTypeInfo = ClassInfo.forType(expectedType, TypeLookup.ELEMENT_TYPE);
+						ClassInfo expectedTypeInfo = ClassInfo.forType(expectedType);
 						//SimpleVerifier returns effectively this, somewhat questionable to whether it's true
 						//Suggests that so long as the expectedType is an interface it can be reached via type
 						//Even though #isAssignableFrom says that type doesn't have expectedType as a parent
@@ -88,7 +86,7 @@ class Verifier extends SimpleVerifier {
         if (this.currentClass != null && type.equals(this.currentClass)) {
             return this.isInterface;
         }
-        return ClassInfo.forType(type, TypeLookup.ELEMENT_TYPE).isInterface();
+        return ClassInfo.forType(type).isInterface();
     }
 
     @Override
@@ -96,7 +94,7 @@ class Verifier extends SimpleVerifier {
         if (this.currentClass != null && type.equals(this.currentClass)) {
             return this.currentSuperClass;
         }
-        ClassInfo c = ClassInfo.forType(type, TypeLookup.ELEMENT_TYPE).getSuperClass();
+        ClassInfo c = ClassInfo.forType(type).getSuperClass();
         return c == null ? null : Type.getObjectType(c.getName());
     }
 
@@ -142,9 +140,14 @@ class Verifier extends SimpleVerifier {
 
 	        case Type.ARRAY: {
 	        	switch (type.getSort()) {
-	        	case Type.ARRAY: //Arrays of a type can be cast to arrays of a supertype if they're the same dimension
-	        		if (type.getDimensions() != other.getDimensions()) return false;
-	        		return isAssignableFrom(type.getElementType(), other.getElementType());
+	        	case Type.ARRAY:
+	        		if (Type.getType(Object.class).equals(type.getElementType())) {
+	        			//All arrays can be cast to an Object array with fewer dimensions (such as float[][] -> Object[], but not float[][] -> Object[][])
+	        			//Non-primitive arrays can themselves be cast to an Object array with the same number of dimensions as well (e.g. MyType[] -> Object[])
+	        			return type.getDimensions() < other.getDimensions() || type.getDimensions() == other.getDimensions() && other.getElementType().getSort() == Type.OBJECT;
+	        		} else {//Arrays of a type can be cast to arrays of a supertype if they're the same dimension
+	        			return type.getDimensions() == other.getDimensions() && isAssignableFrom(type.getElementType(), other.getElementType());
+	        		}
 
 	        	case Type.OBJECT: //Arrays are only assignable to Object, Serializable and Cloneable
 	        		return ImmutableSet.of(Type.getInternalName(Object.class),
@@ -157,11 +160,11 @@ class Verifier extends SimpleVerifier {
 	        }
 
 	        case Type.OBJECT: {
-	        	ClassInfo typeInfo = ClassInfo.forType(type, TypeLookup.ELEMENT_TYPE);
-	        	if (typeInfo == null) return false; //Might be missing this if type is a primitive/array
+	        	ClassInfo typeInfo = ClassInfo.forType(type);
+	        	if (typeInfo == null) return false; //Might be missing this if type is a primitive
 	        	if (typeInfo.isObject) return true; //Can always cast objects to Object
 
-	        	ClassInfo otherInfo = ClassInfo.forType(other, TypeLookup.ELEMENT_TYPE); //Shouldn't be missing this
+	        	ClassInfo otherInfo = ClassInfo.forType(other); //Shouldn't be missing this
 	        	if (otherInfo == null) throw new NullPointerException("Unexpected null return for " + other + " type");
 
 	        	return otherInfo.hasSuperClass(typeInfo, typeInfo.isInterface() || otherInfo.isInterface());
