@@ -30,11 +30,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
-<<<<<<< HEAD
 import java.util.Collections;
 import java.util.Arrays;
-=======
->>>>>>> chocohead/jekan't
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
