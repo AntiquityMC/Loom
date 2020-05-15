@@ -100,8 +100,14 @@ public class MinecraftMappedProvider extends LogicalDependencyProvider {
         String intermediaryJar = minecraftProvider.minecraftVersion + "-intermediary" + atOffset + '-' + mappingsProvider.mappingsName;
         MINECRAFT_INTERMEDIARY_JAR = new File(cache, "minecraft-" + intermediaryJar + ".jar");
         String mappedJar = minecraftProvider.minecraftVersion + "-mapped" + atOffset + '-' + mappingsProvider.mappingsName + '-' + mappingsProvider.mappingsVersion;
-        MINECRAFT_MAPPED_JAR = new File(cache, mappedJar + File.separator + "minecraft-" + mappedJar + ".jar");
-        Files.createParentDirs(MINECRAFT_MAPPED_JAR);
+
+        // Create version directory, see modmuss50/fabric-loom@83d2741d and modmuss50/fabric-loom@01dda726
+        File versionDirectory = new File(cache, mappedJar);
+        if (!versionDirectory.exists()) {
+            versionDirectory.mkdir();
+        }
+
+        MINECRAFT_MAPPED_JAR = new File(versionDirectory, "minecraft-" + mappedJar + ".jar");
 
         if (!getMappedJar().exists() || !getIntermediaryJar().exists() || atChange) {
             if (getMappedJar().exists()) {
@@ -119,7 +125,7 @@ public class MinecraftMappedProvider extends LogicalDependencyProvider {
             throw new RuntimeException("mapped jar not found");
         }
 
-        AbstractPlugin.addDirectoryRepo(project, "UserMappedMinecraft", MINECRAFT_MAPPED_JAR.getParentFile());
+        AbstractPlugin.addDirectoryRepo(project, "UserMappedMinecraft", versionDirectory);
         addDependency("net.minecraft:minecraft:" + mappedJar, project, Constants.MINECRAFT_NAMED);
         addDependency("net.minecraft:minecraft:" + intermediaryJar, project, Constants.MINECRAFT_INTERMEDIARY);
     }
